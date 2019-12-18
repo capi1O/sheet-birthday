@@ -13,32 +13,42 @@ function send()
 		// UrlFetchApp.fetch(ZAPIER_SMS_WEBHOOK) // REPLACE
 
 		// option 2. SmsGateway24 : forwards message to your phone which will send the SMS
-		var SmsGateaway24Url = 'https://smsgateway24.com/getdata/addsms';
-
-		var data =
-		{
-			'token': 'SMSGATEWAY24_API_TOKEN', // REPLACE
-			'sendto': phoneNumber,
-			'body': message,
-			'device_id': 'SMSGATEWAY24_DEVICE_ID' // REPLACE
-		};
-
-		var options =
+		var SmsGateway24BaseURL = 'https://smsgateway24.com/getdata/';
+		var postOptions =
 		{
 			'method' : 'post',
-			'contentType': 'application/json',
-			'payload' : JSON.stringify(data)
+			'contentType': 'application/x-www-form-urlencoded'
 		};
-		
-		var response = UrlFetchApp.fetch(SmsGateaway24Url, options); // HTTPResponse
 
-		var responseHttpCode = response.getResponseCode();
-		var responseContentText = response.getContentText();
-		var responseContent = JSON.parse(responseContentText);
+		// 2A. Get token
+		var smsGatewayEmail = encodeURIComponent(SMSGATEWAY24_LOGIN); // REPLACE
+		var smsGatewayPassword = encodeURIComponent(SMSGATEWAY24_PASSWORD); // REPLACE
 
-		Logger.log('post response code : ' + responseHttpCode + ' - content : ' + responseContentText);
+		var getTokenResponse = UrlFetchApp.fetch(SmsGateway24BaseURL + 'gettoken?email=' + smsGatewayEmail + '&pass=' + smsGatewayPassword, postOptions); // HTTPResponse
 
-		if (responseHttpCode == '200' && responseContent.error != 1) return true;
+		var getTokenResponseHttpCode = getTokenResponse.getResponseCode();
+		var getTokenResponseContentText = getTokenResponse.getContentText();
+		var getTokenResponseContent = JSON.parse(getTokenResponseContentText);
+
+		Logger.log('get token response code : ' + getTokenResponseHttpCode + ' - content : ' + getTokenResponseContentText);
+
+		if (getTokenResponseHttpCode != '200' || getTokenResponseContent.error == 1) return false;
+
+		// 2B. send SMS
+		var token = getTokenResponseContent.token;
+		var sendto = encodeURIComponent(phoneNumber);
+		var body = encodeURIComponent(message);
+		var device_id = SMSGATEWAY24_DEVICE_ID; // REPLACE
+
+		var sendSMSResponse = UrlFetchApp.fetch(SmsGateway24BaseURL + 'addsms?token=' + token + '&sendto=' + sendto + '&body=' + body + '&device_id=' + device_id, postOptions); // HTTPResponse
+
+		var sendSMSResponseCode = sendSMSResponse.getResponseCode();
+		var sendSMSResponseContentText = sendSMSResponse.getContentText();
+		var sendSMSResponseContent = JSON.parse(sendSMSResponseContentText);
+
+		Logger.log('send SMS response code : ' + sendSMSResponseCode + ' - content : ' + sendSMSResponseContentText);
+
+		if (sendSMSResponseCode == '200' && sendSMSResponseContent.error != 1) return true;
 		else return false;
 	}
 	
@@ -51,8 +61,8 @@ function send()
 
 	var todayDate = new Date();
 	var timeZone = TIME_ZONE; // REPLACE
-	var todayDay = Utilities.formatDate(todayDate, timeZone, "dd/MM");
-	var todayYear = Utilities.formatDate(todayDate, timeZone, "yyyy");
+	var todayDay = Utilities.formatDate(todayDate, timeZone, 'dd/MM');
+	var todayYear = Utilities.formatDate(todayDate, timeZone, 'yyyy');
 	
 	var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
 	var startRow = 2;
@@ -78,7 +88,7 @@ function send()
 		var company = row[4];
 		var notes = row[5];
 		var birthDate = new Date(row[6]);
-		var birthDay = Utilities.formatDate(birthDate, timeZone, "dd/MM"); // TODO : check if birthDate is a Date object
+		var birthDay = Utilities.formatDate(birthDate, timeZone, 'dd/MM'); // TODO : check if birthDate is a Date object
 
 		var birthdayMessage = row[7];
 		var messageSentIn = row[8];
@@ -134,5 +144,7 @@ function send()
 			else Logger.log('message already sent to ' + firstName + ' ' + lastName);
 		}
 		else Logger.log('it is not ' + firstName + ' ' + lastName + '\'s birthday today');
+
+		Logger.log('\n');
 	};
 };

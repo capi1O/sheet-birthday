@@ -9,15 +9,37 @@ function send()
 	
 	function sendTextMessage(phoneNumber, message)
 	{
-		
 		// option 1. POST to a zapier webhook which trigger sending of SMS via SMS by Zapier (only for US and UK numbers)
-		// UrlFetchApp.fetch('https://hooks.zapier.com/hooks/catch/xxxxx/yyyyyyy/')
+		// UrlFetchApp.fetch(ZAPIER_SMS_WEBHOOK) // REPLACE
 
-		// option 2. Twilio API : TODO
+		// option 2. SmsGateway24 : forwards message to your phone which will send the SMS
+		var SmsGateaway24Url = 'https://smsgateway24.com/getdata/addsms';
 
-		// option 3. SMSgateway => android phone : TODO
+		var data =
+		{
+			'token': 'SMSGATEWAY24_API_TOKEN', // REPLACE
+			'sendto': phoneNumber,
+			'body': message,
+			'device_id': 'SMSGATEWAY24_DEVICE_ID' // REPLACE
+		};
 
-		return false;
+		var options =
+		{
+			'method' : 'post',
+			'contentType': 'application/json',
+			'payload' : JSON.stringify(data)
+		};
+		
+		var response = UrlFetchApp.fetch(SmsGateaway24Url, options); // HTTPResponse
+
+		var responseHttpCode = response.getResponseCode();
+		var responseContentText = response.getContentText();
+		var responseContent = JSON.parse(responseContentText);
+
+		Logger.log('post response code : ' + responseHttpCode + ' - content : ' + responseContentText);
+
+		if (responseHttpCode == '200' && responseContent.error != 1) return true;
+		else return false;
 	}
 	
 	function sendEmail(emailAddress, message)
@@ -28,14 +50,14 @@ function send()
 	}
 
 	var todayDate = new Date();
-	var timeZone = AdsApp.currentAccount().getTimeZone();
+	var timeZone = TIME_ZONE; // REPLACE
 	var todayDay = Utilities.formatDate(todayDate, timeZone, "dd/MM");
 	var todayYear = Utilities.formatDate(todayDate, timeZone, "yyyy");
 	
 	var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
 	var startRow = 2;
 	var startColumn = 1; // A
-	var lastRow = sheet.getLastRow(); // number of rows to process
+	var lastRow = sheet.getLastRow() - 1; // number of rows to process
 	var lastColumn = 9 // I
 
 	// fetch the range of cells from column A to I and row 2 to ...
@@ -56,7 +78,7 @@ function send()
 		var company = row[4];
 		var notes = row[5];
 		var birthDate = new Date(row[6]);
-		var birthDay = Utilities.formatDate(birthDate, 'Europe/Paris', "dd/MM"); // TODO : check if birthDate is a Date object
+		var birthDay = Utilities.formatDate(birthDate, timeZone, "dd/MM"); // TODO : check if birthDate is a Date object
 
 		var birthdayMessage = row[7];
 		var messageSentIn = row[8];
@@ -111,8 +133,6 @@ function send()
 
 			else Logger.log('message already sent to ' + firstName + ' ' + lastName);
 		}
-		else Logger.log('message already sent to ' + firstName + ' ' + lastName);
-
-		Logger.log('it is not ' + firstName + ' ' + lastName + '\'s birthday today');
+		else Logger.log('it is not ' + firstName + ' ' + lastName + '\'s birthday today');
 	};
 };

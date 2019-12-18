@@ -1,6 +1,6 @@
-// this script is triggered every day https://developers.google.com/apps-script/guides/triggers/installable#time-driven_triggers
+// this script should be triggered every day, see https://github.com/didrip/sheet-birthday for how to use
 
-function send()
+function sendBirthdayMessageToContacts()
 {
 	function notifyUser(message)
 	{
@@ -9,10 +9,7 @@ function send()
 	
 	function sendTextMessage(phoneNumber, message)
 	{
-		// option 1. POST to a zapier webhook which trigger sending of SMS via SMS by Zapier (only for US and UK numbers)
-		// UrlFetchApp.fetch(ZAPIER_SMS_WEBHOOK) // REPLACE
-
-		// option 2. SmsGateway24 : forwards message to your phone which will send the SMS
+		// SmsGateway24 forwards message to your phone which will send the SMS
 		var SmsGateway24BaseURL = 'https://smsgateway24.com/getdata/';
 		var postOptions =
 		{
@@ -20,7 +17,7 @@ function send()
 			'contentType': 'application/x-www-form-urlencoded'
 		};
 
-		// 2A. Get token
+		// 1. Get token
 		var smsGatewayEmail = encodeURIComponent(SMSGATEWAY24_LOGIN); // REPLACE
 		var smsGatewayPassword = encodeURIComponent(SMSGATEWAY24_PASSWORD); // REPLACE
 
@@ -34,7 +31,7 @@ function send()
 
 		if (getTokenResponseHttpCode != '200' || getTokenResponseContent.error == 1) return false;
 
-		// 2B. send SMS
+		// 2. send SMS
 		var token = getTokenResponseContent.token;
 		var sendto = encodeURIComponent(phoneNumber);
 		var body = encodeURIComponent(message);
